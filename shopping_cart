@@ -1,0 +1,147 @@
+<?php
+// Sample products
+$products = [
+    1 => ["name" => "Product 1", "price" => 1000, "image" => "https://tse3.mm.bing.net/th?id=OIP.67yrsv1PsBkez7M2j1FMbwHaHa&pid=Api&P=0&h=180"],
+    2 => ["name" => "Product 2", "price" => 650, "image" => "https://cdn.sareeka.com/image/data2020/tafeta-silk-embroidered-anarkali-suit-163647.jpg"],
+    4 => ["name" => "Product 3", "price" => 250, "image" => "https://www.fashioncrab.com/wp-content/uploads/2023/02/Big-Dark-Pink-Traditional-Jhumka-Earrings-for-Girls.jpg"],
+    5 => ["name" => "Product 5", "price" => 5000000, "image" => "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcTTXtlCwfFQmoLOA1K620e6FnLzDH6WwnM69HfSUi1GSr1rvJqTvqe9s304e9SSLjcI6MrNcnvWoowDfco0jYR2w8yEMXgISn4Q-xlZSiYdBo-aZkguXni4ikZBcXFuAaRrE7sAHF_MmN5X&usqp=CAc"],
+    6 => ["name" => "Product 6", "price" => 100000, "image" => "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcQOsHO-gMbNSeHuPx8r08Z9IQJXPKuar9glb1N-zayHLdqsO0JgCUPe6D9OZXPJDwXcL-Bm4QA3Ty4YmFWA0KzE5sqOTpyi631ZN-_bV5Yg37BxSkbTx86W"],
+    7 => ["name" => "Product 7", "price" => 65000, "image" => "https://www.sathya.store/img/product/Trzmd5hSl1nDfIrL.webp"],
+    8 => ["name" => "Product 8", "price" => 50000, "image" => "https://m.media-amazon.com/images/I/71kOe866xHL._SL1500_.jpg"],
+];
+
+// Read cart from cookie
+$cart = isset($_COOKIE['cart']) ? json_decode($_COOKIE['cart'], true) : [];
+
+// Handle add to cart
+if (isset($_POST['add_to_cart'])) {
+    $id = (int) $_POST['product_id'];
+    $qty = max(1, min(5, (int) $_POST['quantity']));
+
+    if (isset($products[$id])) {
+        $cart[$id] = isset($cart[$id]) ? min(5, $cart[$id] + $qty) : $qty;
+        setcookie('cart', json_encode($cart), time() + (86400 * 7), "/");
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit;
+    }
+}
+
+// Handle remove from cart
+if (isset($_POST['remove_from_cart'])) {
+    $id = (int) $_POST['product_id'];
+    if (isset($cart[$id])) {
+        unset($cart[$id]);
+        setcookie('cart', json_encode($cart), time() + (86400 * 7), "/");
+    }
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Handle clear cart
+if (isset($_GET['clear'])) {
+    setcookie('cart', '', time() - 3600, "/");
+    $cart = [];
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+
+// Total calculation
+$total = 0;
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cookie-Based Shopping Cart</title>
+    <style>
+        .product-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .product-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .product-info {
+            text-align: left;
+            width: 100%;
+        }
+        .product-image {
+            flex-shrink: 0;
+	}
+        button:hover {
+            opacity: 0.9;
+        }
+        .clear-cart-btn {
+            padding: 8px 12px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+
+</head>
+<body>
+    <h1>🛍 Simple Shopping Cart</h1>
+
+    <h2>🛒 Your Cart</h2>
+    <?php if (!empty($cart)): ?>
+        <ul>
+            <?php foreach ($cart as $id => $qty): ?>
+                <?php if (isset($products[$id])): ?>
+                    <?php $product = $products[$id]; ?>
+                    <li>
+                        <img src="<?= $product['image'] ?>" width="100" alt="<?= htmlspecialchars($product['name']) ?>"><br>
+                        <strong><?= htmlspecialchars($product['name']) ?></strong><br>
+                        Quantity: <?= $qty ?><br>
+                        Price: ₹<?= $product['price'] ?> x <?= $qty ?> = ₹<?= $product['price'] * $qty ?>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="product_id" value="<?= $id ?>">
+                            <button type="submit" name="remove_from_cart">❌ Remove</button>
+                        </form>
+                    </li>
+                    <hr>
+                    <?php $total += $product['price'] * $qty; ?>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </ul>
+        <h3>Total: ₹<?= $total ?></h3>
+        <form method="get">
+            <button class="clear-btn" type="submit" name="clear" value="1">🗑 Clear Cart</button>
+        </form>
+    <?php else: ?>
+        <p>Your cart is empty.</p>
+    <?php endif; ?>
+
+    <hr>
+    <h2>🛍 Products</h2>
+    <div class="product-grid">
+        <?php foreach ($products as $id => $product): ?>
+            <div class="product-card">
+                <img src="<?= $product['image'] ?>" width="100" alt="<?= htmlspecialchars($product['name']) ?>"><br>
+                <strong><?= htmlspecialchars($product['name']) ?></strong><br>
+                Price: ₹<?= $product['price'] ?><br>
+                <form method="post" action="">
+                    <input type="hidden" name="product_id" value="<?= $id ?>">
+                    Quantity: 
+                    <select name="quantity">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <option value="<?= $i ?>"><?= $i ?></option>
+                        <?php endfor; ?>
+                    </select>
+                    <br><br>
+                    <button type="submit" name="add_to_cart">Add to Cart</button>
+                </form>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</body>
+</html>
